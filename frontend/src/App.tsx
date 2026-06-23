@@ -1,9 +1,7 @@
-import { Sparkles } from "lucide-react";
 import { useState, useEffect } from "react";
 import { type ChatMessage, type Document, api  } from "./api";
 import { ChatWindow } from "./components/ChatWindow";
-import { DocumentList } from "./components/DocumentList";
-import { DocumentUpload } from "./components/DocumentUpload";
+import Sidebar from "./components/Sidebar";
 
 export default function App() {
   const [documents, setDocuments] = useState<Document[]>([]);
@@ -48,25 +46,14 @@ export default function App() {
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-slate-900 text-slate-100 font-sans">
+
       {/* Sidebar Layout */}
-      <div className="w-80 border-r border-slate-800 bg-slate-950 flex flex-col p-4">
-        <div className="flex items-center gap-2 mb-6 px-2">
-          <Sparkles className="w-6 h-6 text-indigo-400" />
-          <h1 className="text-xl font-bold tracking-tight bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent">
-            RAG Dashboard
-          </h1>
-        </div>
-
-        {/* Upload Component */}
-        <DocumentUpload onUploadSuccess={loadDocs} />
-
-        {/* Document List Component */}
-        <DocumentList 
-          documents={documents} 
-          activeDocId={activeDocId} 
-          onSelectDoc={setActiveDocId} 
-        />
-      </div>
+      <Sidebar 
+        documents={documents} 
+        activeDocId={activeDocId} 
+        setActiveDocId={setActiveDocId} 
+        loadDocs={loadDocs} 
+      />
 
       {/* Main Chat Layout */}
       <ChatWindow 
