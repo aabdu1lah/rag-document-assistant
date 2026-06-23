@@ -4,7 +4,7 @@ A full-stack AI application that lets you upload PDF documents and ask questions
 
 Built with FastAPI, React, PostgreSQL + pgvector, and the OpenAI API (or any OpenAI-compatible local LLM via LM Studio).
 
-<video src="assets/demo.mp4" width="100%" controls autoplay loop muted></video>
+https://github.com/user-attachments/assets/da8fae87-8104-4d3b-9abe-02bed957ae18
 
 ---
 
