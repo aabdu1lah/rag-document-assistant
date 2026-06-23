@@ -171,7 +171,7 @@ Copy `.env.example` to `.env` and fill in the following:
 | `CHAT_MODEL` | LLM model name | `llama-3.2-3b-instruct` or `gpt-4o-mini` |
 | `CHUNK_SIZE` | Target token size per chunk | `500` |
 | `CHUNK_OVERLAP` | Overlap between adjacent chunks | `50` |
-| `BASE_URL` | Backend URL | `http://localhost:8000` |
+| `VITE_BASE_URL` | Backend URL | `http://localhost:8000` |
 
 ---
 

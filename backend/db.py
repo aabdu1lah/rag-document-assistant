@@ -1,6 +1,7 @@
+from config import DATABASE_URL, EMBEDDING_DIMENSIONS
 from pgvector.psycopg import register_vector_async
 from psycopg_pool import AsyncConnectionPool
-from config import DATABASE_URL, EMBEDDING_DIMENSIONS
+from psycopg import AsyncConnection
 
 async def configure_connection(conn):
     # Register pgvector types on every new connection
@@ -11,10 +12,16 @@ pool = AsyncConnectionPool(DATABASE_URL, open=False, configure=configure_connect
 
 async def init_db():
     """Creates extensions and tables. Handles dynamic embedding dimensions."""
+
+    # Standalone connection to bootstrap the vector extension
+    async with await AsyncConnection.connect(DATABASE_URL) as setup_conn:
+        await setup_conn.execute("CREATE EXTENSION IF NOT EXISTS vector;")
+        await setup_conn.commit() # Save the extension
+
+    await pool.open()
+
     async with pool.connection() as conn:
         async with conn.cursor() as cur:
-            await cur.execute("CREATE EXTENSION IF NOT EXISTS vector;")
-
             # Create documents table
             await cur.execute("""
                 CREATE TABLE IF NOT EXISTS documents (
@@ -34,15 +41,17 @@ async def init_db():
             """)
 
             # Attempt to safely alter the dimension if it was updated in the .env file
-            # We use neseted transactions so failures (like casting incompatible existing data) don't crash app on boot
             try:
-                async with conn.transaction:
+                async with conn.transaction():
                     await cur.execute(f"""
                         ALTER TABLE document_chunks
                         ALTER COLUMN embedding TYPE vector({EMBEDDING_DIMENSIONS});
                     """)
             except Exception:
                 print(f"Notice: Skipped embedding dimension update. If you intentionally changed dimensions to {EMBEDDING_DIMENSIONS}, you may need to clear the document_chunks table first")
+        
+        # SAVE THE TABLES!
+        await conn.commit()
                 
 async def create_document(filename: str) -> int:
     """Inserts a new document record and returns its ID."""
@@ -52,9 +61,10 @@ async def create_document(filename: str) -> int:
                 INSERT INTO documents (filename)
                 VALUES (%s)
                 RETURNING id
-            """, (filename,)
-            )
+            """, (filename,))
             result = await cur.fetchone()
+            
+        await conn.commit() # SAVE THE ROW!
         return result[0]
     
 async def insert_chunks(records: list[tuple]):
@@ -65,12 +75,14 @@ async def insert_chunks(records: list[tuple]):
                 INSERT INTO document_chunks (document_id, content, embedding)
                 VALUES (%s, %s, %s)
             """, records)
+            
+        await conn.commit() # SAVE THE CHUNKS!
     
 async def get_all_documents() -> list[dict]:
     """Retrieves all uploaded documents."""
     async with pool.connection() as conn:
         async with conn.cursor() as cur:
-            await cur.execute("SELECT id, filename FROM DOCUMENTS")
+            await cur.execute("SELECT id, filename FROM documents")
             results = await cur.fetchall()
     return [{"id": row[0], "filename": row[1]} for row in results]
 
